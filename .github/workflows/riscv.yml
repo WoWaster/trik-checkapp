@@ -1,0 +1,39 @@
+name: Build on foreign platforms
+
+on:
+  push:
+    branches:
+  pull_request:
+    branches:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash -l {0} # to force import of ~/.bash_profile
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }}
+      cancel-in-progress: true
+
+    steps:
+      - name: Configure git
+        run: |
+          git config --global core.symlinks true
+          git config --global core.autocrlf input
+
+      - uses: actions/checkout@v2
+
+      - name: Configure ccache
+        uses: hendrikmuhs/ccache-action@v1.2
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v1
+        with:
+          platforms: riscv64
+
+      - name: Build
+        uses: docker://riscv64/debian:sid
+        with:
+          entrypoint: ./.github/build.sh
